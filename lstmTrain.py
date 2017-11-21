@@ -27,7 +27,6 @@ with graph.as_default():
     sentence = tf.placeholder(tf.int32, [batch_size, n_lstm_steps])   #n_lstm_steps is 30 +2 
     mask = tf.placeholder(tf.float32, [batch_size, n_lstm_steps])
     current_emb = tf.placeholder(tf.int32, [batch_size, n_lstm_steps])
-    # onehot_labels = tf.placeholder(tf.int32,[batch_size, embedding_size])
     embed_word_W = tf.Variable(tf.random_normal([dim_hidden, vocab_size]))
     embed_word_b = tf.Variable(tf.random_normal([vocab_size]))
 
@@ -36,9 +35,7 @@ with graph.as_default():
 
     bemb = tf.Variable(tf.zeros([embedding_size]), name='bemb')
 
-    # sentence = tf.placeholder(tf.int32, [batch_size, n_lstm_steps])
     lstm = BasicLSTMCell(dim_hidden,state_is_tuple=False)
-    # state = tf.zeros([batch_size, lstm.state_size])
     def model():
         
         state = tf.zeros([batch_size, lstm.state_size])
@@ -72,8 +69,7 @@ with graph.as_default():
             loss = loss / tf.reduce_sum(mask[:,1:])
             return loss
 
-    loss = model()
-    # cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logit_words, labels=onehot_labels))    
+    loss = model()    
     optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 
@@ -87,23 +83,19 @@ with tf.Session(graph=graph) as sess:
             range(0, len(trainData), batch_size),
             range(batch_size, len(trainData), batch_size)):
 
-            # current_feats = feats[image_id[start:end]]
-            # current_feats = current_feats.reshape(-1, ctx_shape[1], ctx_shape[0]).swapaxes(1,2)
-
             data = trainData[start:end]
-            # current_caption_ind = map(lambda cap: [wordtoix[word] for word in cap.lower().split(' ')[:-1] if word in wordtoix], current_captions)
-
+            
             current_data_matrix = sequence.pad_sequences(data, padding='post', maxlen=maxlen+1)
-            # print(current_caption_matrix)
+            
             current_data_matrix = np.hstack( [np.full( (len(current_data_matrix),1), 0), current_data_matrix] ).astype(int)
 
             current_mask_matrix = np.zeros((current_data_matrix.shape[0], current_data_matrix.shape[1]))
             nonzeros = np.array( map(lambda x: (x != 0).sum()+2, current_data_matrix ))
             #  +2 -> #START# and '.'
-            # print(nonzeros)
+            
             for ind, row in enumerate(current_mask_matrix):
                 row[:nonzeros[ind]] = 1
-            # print(current_mask_matrix)
+            
             _, loss_value = sess.run([optimizer, loss], feed_dict={
                 sentence:current_data_matrix,
                 mask:current_mask_matrix})
